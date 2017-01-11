@@ -4,15 +4,27 @@
 namespace App\Repositories;
 
 
+use App\Location;
+use App\Warehouse;
 use App\Interfaces\WarehouseRepositoryInterface;
+use Illuminate\Support\Facades\App;
 
 class WarehouseRepository implements WarehouseRepositoryInterface
 {
-    private $db;
+    /**
+     * @var App/Warehouse
+     */
+    private $warehouse;
 
-    public function __construct()
+    /**
+     * @var App/Location
+     */
+    private $location;
+
+    public function __construct(Warehouse $warehouse, Location $location)
     {
-        $this->db = app('db');
+        $this->location = $location;
+        $this->warehouse = $warehouse;
     }
 
     /**
@@ -22,7 +34,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
      */
     public function getAll()
     {
-        $result = $this->db->table('warehouses')
+        $result = $this->warehouse->getTable()
             ->join('locations', 'warehouses.location', '=', 'locations.id')
             ->join('managers', 'warehouses.managerId', '=', 'managers.id')
             ->select('warehouses.id', 'warehouses.wh_name', 'locations.latitude', 'locations.longitude', 'locations.location_name', 'managers.manager_name')
@@ -43,7 +55,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
             );
         }
 
-        echo json_encode($whs);
+        return $whs;
     }
 
     /**
@@ -54,7 +66,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
      */
     public function getById($id)
     {
-        $result = $this->db->table('warehouses')
+        $result = $this->warehouse->getTable()
             ->join('locations', 'warehouses.location', '=', 'locations.id')
             ->join('managers', 'warehouses.managerId', '=', 'managers.id')
             ->select('warehouses.id', 'warehouses.wh_name', 'locations.latitude', 'locations.longitude', 'locations.location_name', 'managers.manager_name')
@@ -82,14 +94,14 @@ class WarehouseRepository implements WarehouseRepositoryInterface
      */
     public function create($data)
     {
-        $location = $this->db->table('locations')
+        $location = $this->location->getTable()
             ->insertGetId([
                 'latitude' => $data['location-latitude'],
                 'longitude' => $data['location-longitude'],
                 'location_name' => $data['location-name']
             ]);
 
-        $whId = $this->db->table('warehouses')
+        $whId = $this->warehouse->getTable()
             ->insertGetId([
                 'wh_name' => $data['wh-name'],
                 'location' => $location,
@@ -97,7 +109,6 @@ class WarehouseRepository implements WarehouseRepositoryInterface
             ]);
 
         return $this->getById($whId);
-
     }
 
     /**
@@ -111,14 +122,14 @@ class WarehouseRepository implements WarehouseRepositoryInterface
     {
         // This will create new location. In this case validation should be performed.
         // Depending on use case perhaps existing location would be selected.
-        $location = $this->db->table('locations')
+        $location = $this->location->getTable()
             ->insertGetId([
                 'latitude' => $data['location-latitude'],
                 'longitude' => $data['location-longitude'],
                 'location_name' => $data['location-name']
             ]);
 
-        $wh = $this->db->table('warehouses')
+        $wh = $this->warehouse->getTable()
             ->where('id', $id)
             ->update([
                 'wh_name' => $data['wh-name'],
@@ -137,7 +148,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
      */
     public function delete($id)
     {
-        return $this->db->table("warehouses")
+        return $this->warehouse->getTable()
             ->where('id', $id)
             ->delete();
     }
